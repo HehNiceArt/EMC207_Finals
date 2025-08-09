@@ -105,23 +105,23 @@ namespace Platformer
             Collider[] hitPlayers = Physics.OverlapSphere(attackPos, attackDistance);
 
             animator.Play("Attack");
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            if (stateInfo.IsName("Attack") && stateInfo.normalizedTime < 0.1f)
-                return;
             foreach (var player in hitPlayers)
             {
                 if (player.CompareTag("Player") && Vector3.Distance(transform.position, player.transform.position) < attackDistance)
                 {
                     player.GetComponent<Health>().TakeDamage(attackDamage);
-                    Debug.Log(player.name);
                     ChangeState(AiState.Cooldown);
                 }
             }
         }
         void CooldownUpdate()
         {
-            animator.Play("Locomotion");
             cooldownTimer -= Time.deltaTime;
+            if (cooldownTimer <= 2f)
+            {
+                animator.Play("Locomotion");
+            }
+
             Debug.Log($"Cooldown: {cooldownTimer}");
             if (cooldownTimer <= 0f)
             {
