@@ -26,13 +26,11 @@ namespace Platformer
         void Update()
         {
             playerHealthText.text = currentHealth.ToString();
-
         }
 
         public void TakeDamage(int damage)
         {
             currentHealth -= damage;
-            Debug.Log("Current Health: " + currentHealth);
             PublishHealthPercentage();
         }
 
