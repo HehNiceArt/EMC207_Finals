@@ -4,40 +4,42 @@ using KBCore.Refs;
 using UnityEngine;
 using Utilities;
 
-namespace Platformer {
-    public class PlayerController : ValidatedMonoBehaviour {
+namespace Platformer
+{
+    public class PlayerController : ValidatedMonoBehaviour
+    {
         [Header("References")]
         [SerializeField, Self] Rigidbody rb;
         [SerializeField, Self] GroundChecker groundChecker;
         [SerializeField, Self] Animator animator;
         [SerializeField, Anywhere] CinemachineFreeLook freeLookVCam;
         [SerializeField, Anywhere] InputReader input;
-        
+
         [Header("Movement Settings")]
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float rotationSpeed = 15f;
         [SerializeField] float smoothTime = 0.2f;
-        
+
         [Header("Jump Settings")]
         [SerializeField] float jumpForce = 10f;
         [SerializeField] float jumpDuration = 0.5f;
         [SerializeField] float jumpCooldown = 0f;
         [SerializeField] float gravityMultiplier = 3f;
-        
+
         [Header("Dash Settings")]
         [SerializeField] float dashForce = 10f;
         [SerializeField] float dashDuration = 1f;
         [SerializeField] float dashCooldown = 2f;
-        
+
         [Header("Attack Settings")]
         [SerializeField] float attackCooldown = 0.5f;
         [SerializeField] float attackDistance = 1f;
         [SerializeField] int attackDamage = 10;
 
         const float ZeroF = 0f;
-        
+
         Transform mainCam;
-        
+
         float currentSpeed;
         float velocity;
         float jumpVelocity;
@@ -51,26 +53,28 @@ namespace Platformer {
         CountdownTimer dashTimer;
         CountdownTimer dashCooldownTimer;
         CountdownTimer attackTimer;
-        
+
         StateMachine stateMachine;
-        
+
         // Animator parameters
         static readonly int Speed = Animator.StringToHash("Speed");
 
-        void Awake() {
+        void Awake()
+        {
             mainCam = Camera.main.transform;
             freeLookVCam.Follow = transform;
             freeLookVCam.LookAt = transform;
             // Invoke event when observed transform is teleported, adjusting freeLookVCam's position accordingly
             freeLookVCam.OnTargetObjectWarped(transform, transform.position - freeLookVCam.transform.position - Vector3.forward);
-            
+
             rb.freezeRotation = true;
-            
+
             SetupTimers();
             SetupStateMachine();
         }
 
-        void SetupStateMachine() {
+        void SetupStateMachine()
+        {
             // State Machine
             stateMachine = new StateMachine();
 
@@ -91,14 +95,16 @@ namespace Platformer {
             stateMachine.SetState(locomotionState);
         }
 
-        bool ReturnToLocomotionState() {
-            return groundChecker.IsGrounded 
-                   && !attackTimer.IsRunning 
-                   && !jumpTimer.IsRunning 
+        bool ReturnToLocomotionState()
+        {
+            return groundChecker.IsGrounded
+                   && !attackTimer.IsRunning
+                   && !jumpTimer.IsRunning
                    && !dashTimer.IsRunning;
         }
 
-        void SetupTimers() {
+        void SetupTimers()
+        {
             // Setup timers
             jumpTimer = new CountdownTimer(jumpDuration);
             jumpCooldownTimer = new CountdownTimer(jumpCooldown);
@@ -110,14 +116,15 @@ namespace Platformer {
             dashCooldownTimer = new CountdownTimer(dashCooldown);
 
             dashTimer.OnTimerStart += () => dashVelocity = dashForce;
-            dashTimer.OnTimerStop += () => {
+            dashTimer.OnTimerStop += () =>
+            {
                 dashVelocity = 1f;
                 dashCooldownTimer.Start();
             };
 
             attackTimer = new CountdownTimer(attackCooldown);
 
-            timers = new(5) {jumpTimer, jumpCooldownTimer, dashTimer, dashCooldownTimer, attackTimer};
+            timers = new(5) { jumpTimer, jumpCooldownTimer, dashTimer, dashCooldownTimer, attackTimer };
         }
 
         void At(IState from, IState to, IPredicate condition) => stateMachine.AddTransition(from, to, condition);
@@ -125,53 +132,70 @@ namespace Platformer {
 
         void Start() => input.EnablePlayerActions();
 
-        void OnEnable() {
+        void OnEnable()
+        {
             input.Jump += OnJump;
             input.Dash += OnDash;
             input.Attack += OnAttack;
         }
-        
-        void OnDisable() {
+
+        void OnDisable()
+        {
             input.Jump -= OnJump;
             input.Dash -= OnDash;
             input.Attack -= OnAttack;
         }
-        
-        void OnAttack() {
-            if (!attackTimer.IsRunning) {
+
+        void OnAttack()
+        {
+            if (!attackTimer.IsRunning)
+            {
                 attackTimer.Start();
             }
         }
 
-        public void Attack() {
+        public void Attack()
+        {
             Vector3 attackPos = transform.position + transform.forward;
             Collider[] hitEnemies = Physics.OverlapSphere(attackPos, attackDistance);
-            
-            foreach (var enemy in hitEnemies) {
-                Debug.Log(enemy.name);
-                if (enemy.CompareTag("Enemy")) {
+
+            foreach (var enemy in hitEnemies)
+            {
+                if (enemy.CompareTag("Enemy"))
+                {
                     enemy.GetComponent<Health>().TakeDamage(attackDamage);
+                    Debug.Log(enemy.name);
+                    Debug.Log($"Attacked {enemy.name} for {attackDamage} damage.");
                 }
             }
         }
 
-        void OnJump(bool performed) {
-            if (performed && !jumpTimer.IsRunning && !jumpCooldownTimer.IsRunning && groundChecker.IsGrounded) {
+        void OnJump(bool performed)
+        {
+            if (performed && !jumpTimer.IsRunning && !jumpCooldownTimer.IsRunning && groundChecker.IsGrounded)
+            {
                 jumpTimer.Start();
-            } else if (!performed && jumpTimer.IsRunning) {
+            }
+            else if (!performed && jumpTimer.IsRunning)
+            {
                 jumpTimer.Stop();
             }
         }
-        
-        void OnDash(bool performed) {
-            if (performed && !dashTimer.IsRunning && !dashCooldownTimer.IsRunning) {
+
+        void OnDash(bool performed)
+        {
+            if (performed && !dashTimer.IsRunning && !dashCooldownTimer.IsRunning)
+            {
                 dashTimer.Start();
-            } else if (!performed && dashTimer.IsRunning) {
+            }
+            else if (!performed && dashTimer.IsRunning)
+            {
                 dashTimer.Stop();
             }
         }
 
-        void Update() {
+        void Update()
+        {
             movement = new Vector3(input.Direction.x, 0f, input.Direction.y);
             stateMachine.Update();
 
@@ -179,65 +203,79 @@ namespace Platformer {
             UpdateAnimator();
         }
 
-        void FixedUpdate() {
+        void FixedUpdate()
+        {
             stateMachine.FixedUpdate();
         }
 
-        void UpdateAnimator() {
+        void UpdateAnimator()
+        {
             animator.SetFloat(Speed, currentSpeed);
         }
 
-        void HandleTimers() {
-            foreach (var timer in timers) {
+        void HandleTimers()
+        {
+            foreach (var timer in timers)
+            {
                 timer.Tick(Time.deltaTime);
             }
         }
 
-        public void HandleJump() {
+        public void HandleJump()
+        {
             // If not jumping and grounded, keep jump velocity at 0
-            if (!jumpTimer.IsRunning && groundChecker.IsGrounded) {
+            if (!jumpTimer.IsRunning && groundChecker.IsGrounded)
+            {
                 jumpVelocity = ZeroF;
                 return;
             }
-            
-            if (!jumpTimer.IsRunning) {
+
+            if (!jumpTimer.IsRunning)
+            {
                 // Gravity takes over
                 jumpVelocity += Physics.gravity.y * gravityMultiplier * Time.fixedDeltaTime;
             }
-            
+
             // Apply velocity
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpVelocity, rb.linearVelocity.z);
         }
 
-        public void HandleMovement() {
+        public void HandleMovement()
+        {
             // Rotate movement direction to match camera rotation
             var adjustedDirection = Quaternion.AngleAxis(mainCam.eulerAngles.y, Vector3.up) * movement;
-            
-            if (adjustedDirection.magnitude > ZeroF) {
+
+            if (adjustedDirection.magnitude > ZeroF)
+            {
                 HandleRotation(adjustedDirection);
                 HandleHorizontalMovement(adjustedDirection);
                 SmoothSpeed(adjustedDirection.magnitude);
-            } else {
+            }
+            else
+            {
                 SmoothSpeed(ZeroF);
-                
+
                 // Reset horizontal velocity for a snappy stop
                 rb.linearVelocity = new Vector3(ZeroF, rb.linearVelocity.y, ZeroF);
             }
         }
 
-        void HandleHorizontalMovement(Vector3 adjustedDirection) {
+        void HandleHorizontalMovement(Vector3 adjustedDirection)
+        {
             // Move the player
             Vector3 velocity = adjustedDirection * (moveSpeed * dashVelocity * Time.fixedDeltaTime);
             rb.linearVelocity = new Vector3(velocity.x, rb.linearVelocity.y, velocity.z);
         }
 
-        void HandleRotation(Vector3 adjustedDirection) {
+        void HandleRotation(Vector3 adjustedDirection)
+        {
             // Adjust rotation to match movement direction
             var targetRotation = Quaternion.LookRotation(adjustedDirection);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        void SmoothSpeed(float value) {
+        void SmoothSpeed(float value)
+        {
             currentSpeed = Mathf.SmoothDamp(currentSpeed, value, ref velocity, smoothTime);
         }
     }

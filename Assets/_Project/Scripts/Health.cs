@@ -9,7 +9,7 @@ namespace Platformer
         [SerializeField] FloatEventChannel playerHealthChannel;
         [SerializeField] TextMeshProUGUI playerHealthText;
 
-        int currentHealth;
+        [SerializeField] int currentHealth;
 
         public bool IsDead => currentHealth <= 0;
 
@@ -23,10 +23,16 @@ namespace Platformer
         {
             PublishHealthPercentage();
         }
+        void Update()
+        {
+            playerHealthText.text = currentHealth.ToString();
+
+        }
 
         public void TakeDamage(int damage)
         {
             currentHealth -= damage;
+            Debug.Log("Current Health: " + currentHealth);
             PublishHealthPercentage();
         }
 
@@ -35,7 +41,6 @@ namespace Platformer
             if (playerHealthChannel != null)
             {
                 playerHealthChannel.Invoke(currentHealth / (float)maxHealth);
-                playerHealthText.text = currentHealth.ToString();
             }
         }
     }
